@@ -82,7 +82,7 @@
                    &kp LCTRL  &kp LGUI  &kp LALT  &lt 1 SPACE  &lt 2 SPACE
             >;
 
-            sensor-bindings = <&scroll_up_down &none>;
+            sensor-bindings = <&scroll_up_down &scroll_up_down>;
         };
 
         FUNCTION {
