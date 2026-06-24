@@ -2,64 +2,54 @@
 
 ## Project
 
-This repository is my fork of `zmk-config-cool642tb` for customizing the cool642tb_r3 keyboard firmware.
+This repository is my fork of `zmk-config-cool642tb` for customizing firmware for a cool642tb_r3 keyboard.
 
-The target keyboard is cool642tb_r3:
+The keyboard I bought is a pre-assembled unit. The firmware currently flashed on the physical keyboard may be vendor-provided and may not match this fork exactly.
 
-* ZMK-based wireless split keyboard
+Do not assume that the current repository contents are the same as the firmware currently installed on the physical keyboard. Treat this repository as the source for building new custom firmware from now on.
+
+## Hardware assumptions
+
+Target keyboard:
+
+* cool642tb_r3
+* ZMK firmware
+* wireless split keyboard
 * Seeed Studio XIAO BLE
-* Left side has a horizontal rotary encoder
-* Right side has a trackball
-* I am using this on Windows, mainly with Japanese IME
+* left half has a horizontal rotary encoder
+* right half has a trackball
+* user mainly uses Windows with Japanese IME
 
-## Work style
+## Work rules
 
-Before editing files:
+Before editing:
 
-1. Read `docs/cool642tb_r3_context.md`.
-2. Inspect the current repository files.
-3. Explain the planned change briefly.
-4. Then modify only the minimum necessary files.
+1. Inspect the current repository files.
+2. State what is confirmed from the repository.
+3. Do not infer the physical keyboard's current flashed firmware unless it is directly available from files.
+4. Make the minimum necessary change.
+5. Do not change unrelated key layout entries.
 
-Do not make unrelated formatting changes.
+When editing rotary encoder behavior:
 
-When editing keymaps:
+* Search for `sensor-bindings`, `left_encoder`, `right_encoder`, `behavior-sensor-rotate`, `SCRL_UP`, `SCRL_DOWN`, `&msc`, and `CONFIG_ZMK_POINTING`.
+* Confirm whether the left encoder is enabled in the shield overlay.
+* If `sensor-bindings` is absent, add explicit sensor bindings for the desired layer.
+* For the first task, change only the default layer unless explicitly asked otherwise.
+* Do not assume that `scroll_move_y` or `scroll_up_down` already exists.
 
-* Prefer small, reversible changes.
-* Keep the original layer structure unless explicitly asked.
-* After changes, summarize:
+## First goal
 
-  * which files changed
-  * what behavior changed
-  * how to test it on the keyboard
-  * whether rebuilding firmware is required
+Make the left rotary encoder perform normal mouse wheel scrolling on the default layer.
 
-## Safety notes
+If the current keymap has no rotary encoder behavior, add the minimum necessary behavior definition and default-layer `sensor-bindings`.
 
-When giving flashing instructions, remind me:
+Do not change FUNCTION, NUM, MOUSE, SCROLL, or other layers yet unless required for the build.
+
+## Flashing safety
+
+When providing flashing instructions, always remind me:
 
 * Do not connect the keyboard to USB while batteries are installed.
-* Flash left and right firmware to the corresponding halves.
+* Flash the left firmware to the left half and the right firmware to the right half.
 * Re-pair Bluetooth if settings are reset.
-
-## Current first goal
-
-The first goal is to make the left rotary encoder easier to test and use.
-
-The initial firmware appears to bind the normal/default layer encoder to mouse cursor movement using `scroll_move_y`, not regular wheel scrolling.
-
-I want to change the default layer encoder behavior from cursor movement to normal scroll, probably by replacing:
-
-```c
-sensor-bindings = <&scroll_move_y>;
-```
-
-with:
-
-```c
-sensor-bindings = <&scroll_up_down>;
-```
-
-in the `default_layer` of `config/cool642tb.keymap`.
-
-Do not change other layers yet unless needed.

@@ -1,85 +1,110 @@
 # cool642tb_r3 context
 
-## What has been confirmed
+## Important premise
 
-This repository contains the ZMK keymap for cool642tb.
+The physical keyboard is a pre-assembled cool642tb_r3.
 
-Important files:
+The firmware currently flashed on the physical keyboard may be vendor-provided and may not match this fork exactly.
 
-* `config/cool642tb.keymap`
-* `config/cool642tb.json`
-* `config/boards/shields/cool642tb/cool642tb_L.overlay`
-* `config/boards/shields/cool642tb/cool642tb_R.overlay`
+Therefore, do not treat this repository as proof of the physical keyboard's current firmware. This repository is the source for building new custom firmware from now on.
 
-## Physical / layout notes
+## Current repository observation
 
-The keyboard is split.
-The left inner top position may look like a key in the logical layout, but on the actual cool642tb_r3 hardware it is a horizontal rotary encoder.
+The currently inspected `config/cool642tb.keymap` has these layers:
 
-The layout has 43 key positions in the JSON layout:
+* `default_layer`
+* `FUNCTION`
+* `NUM`
+* `ARROW`
+* `MOUSE`
+* `SCROLL`
+* `layer_6`
 
-* top row: 10 positions
-* second row: 12 positions
-* third row: 12 positions
-* bottom row: 9 positions
+The pasted `keymap` does not contain `sensor-bindings`.
 
-## Initial layer behavior summary
+Therefore, for firmware built from this repository, rotary encoder rotation behavior may not be explicitly defined unless it is defined elsewhere in the repository.
+
+Before editing, search the repository for:
+
+* `sensor-bindings`
+* `left_encoder`
+* `right_encoder`
+* `behavior-sensor-rotate`
+* `SCRL_UP`
+* `SCRL_DOWN`
+* `&msc`
+* `CONFIG_ZMK_POINTING`
+
+## Current keymap behavior summary from pasted file
 
 ### default layer
 
 Normal typing is QWERTY-like.
 
-Important bottom-row behavior:
+Important default-layer keys:
 
-* left Space key: tap Space, hold FUNCTION
-* right Space key: tap Space, hold NUM
-* Backspace exists on the bottom row
-* LShift exists on the far right bottom position
+* `Esc`, `Tab`, `LShift`, `RShift`
+* `Delete`, `Backspace`, `Enter`
+* left thumb: `LCTRL`, `LGUI`, `LALT`, `lt 1 SPACE`
+* right thumb: `lt 2 SPACE`
+
+The `lt 1 SPACE` key means:
+
+* tap: Space
+* hold: layer 1, likely FUNCTION
+
+The `lt 2 SPACE` key means:
+
+* tap: Space
+* hold: layer 2, likely NUM
 
 ### FUNCTION layer
 
-Entered by holding the left Space key.
+Contains:
 
-Used mainly for:
+* Bluetooth profile selection keys:
 
-* numbers
+  * `BT_SEL 0`
+  * `BT_SEL 1`
+  * `BT_SEL 2`
+* number keys
 * common symbols
-* Muhenkan
-* Delete
-* volume control on rotary encoder
+* Delete / Backspace / Enter
 
 ### NUM layer
 
-Entered by holding the right Space key.
-
-Used mainly for:
+Contains:
 
 * F1 to F10
 * arrow keys
-* Japanese `kana`
-* Bluetooth profile selection
-* Bluetooth clear all
+* `LC(SPACE)`
+* `RG(SPACE)`
+* braces and symbols
 
-Bluetooth-related keys:
+### Combos
 
-* `BT_SEL 0`
-* `BT_SEL 1`
-* `BT_SEL 2`
-* `BT_CLR_ALL`
+The pasted file includes combos such as:
 
-## Rotary encoder behavior
+* `clear_ble_setting`: `BT_CLR_ALL` on layer 1
+* `shift_tab`: momentary layer 1 on layer 0
+* `muhennkann`: macro using `INT_MUHENKAN`
+* `double_quotation`
+* `eq`
 
-The left encoder is enabled in the left overlay with:
+The exact key positions should be verified against the keyboard layout before changing combos.
 
-```c
-&left_encoder {
-    status = "okay";
-};
-```
+## Rotary encoder goal
 
-In `config/cool642tb.keymap`, there are several encoder behavior definitions.
+The first customization goal is:
 
-Important ones:
+Make the left horizontal rotary encoder perform normal mouse wheel scrolling on the default layer.
+
+Because the pasted `keymap` does not contain `sensor-bindings`, the likely implementation is to add:
+
+1. a rotary behavior for normal scroll, using `SCRL_UP` and `SCRL_DOWN`
+2. a `sensor-bindings` entry in `default_layer`
+
+Possible behavior definition:
 
 ```c
 scroll_up_down: behavior_sensor_rotate_mouse_wheel_up_down {
@@ -90,73 +115,34 @@ scroll_up_down: behavior_sensor_rotate_mouse_wheel_up_down {
 };
 ```
 
-This appears to be normal mouse wheel scrolling.
+Possible default layer addition:
 
 ```c
-scroll_move_y: sensor_rotate_msc_for_move_y {
-    compatible = "zmk,behavior-sensor-rotate";
-    #sensor-binding-cells = <0>;
-    bindings = <&msc MOVE_Y(20)>, <&msc MOVE_Y(-20)>;
-    tap-ms = <65>;
-};
+sensor-bindings = <&scroll_up_down>;
 ```
 
-This moves the mouse cursor vertically, not the page scroll.
+Do not assume `scroll_move_y` exists. Do not replace `scroll_move_y` unless the current repository actually contains it.
 
-The current default layer has:
+## Things to verify before finalizing
 
-```c
-sensor-bindings = <&scroll_move_y>;
-```
-
-So the default rotary encoder behavior is likely cursor up/down movement, not page scrolling.
-
-The FUNCTION layer has volume down/up on the encoder:
-
-```c
-sensor-bindings = <&inc_dec_kp C_VOL_DN C_VOL_UP>;
-```
-
-The NUM layer has PageUp/PageDown on the encoder:
-
-```c
-sensor-bindings = <&inc_dec_kp PG_UP PAGE_DOWN>;
-```
-
-## First requested change
-
-Change only the default layer rotary encoder behavior from cursor movement to normal wheel scrolling.
-
-Expected code change:
-
-```diff
- default_layer {
-     ...
--    sensor-bindings = <&scroll_move_y>;
-+    sensor-bindings = <&scroll_up_down>;
- };
-```
+* Whether `&msc` is available and pointing support is enabled.
+* Whether `CONFIG_ZMK_POINTING=y` exists in an appropriate `.conf` file.
+* Whether the left encoder is enabled in the left shield overlay.
+* Whether this keyboard uses one sensor or multiple sensors.
+* Whether `sensor-bindings = <...>;` should be added to only `default_layer` or also other layers later.
 
 ## Test plan after flashing
 
-1. In normal typing mode, rotate the left encoder.
+1. In normal/default layer, rotate the left encoder.
 
    * Expected: page scrolls up/down.
-2. Hold left Space and rotate the encoder.
+2. Confirm normal typing still works.
+3. Confirm left Space hold still enters FUNCTION.
+4. Confirm right Space hold still enters NUM.
+5. If the encoder still does nothing, investigate:
 
-   * Expected: volume changes.
-3. Hold right Space and rotate the encoder.
-
-   * Expected: PageUp/PageDown.
-4. If encoder still does absolutely nothing in all modes, suspect hardware, soldering, encoder enablement, or wrong firmware flashed to the wrong half.
-
-## Japanese / English IME notes
-
-The initial keymap has some Japanese-related keys:
-
-* FUNCTION layer: `INT_MUHENKAN`
-* NUM layer: `INT_KATAKANAHIRAGANA`
-* NUM layer: `LC(SPACE)`
-* NUM layer: `RG(SPACE)`
-
-However, the initial keymap does not appear to have a clear dedicated `半角/全角` toggle key. For Windows Japanese IME, future customization may be needed.
+   * wrong firmware flashed to the wrong half
+   * encoder not enabled in overlay
+   * pointing/mouse config missing
+   * hardware or soldering issue
+   * physical encoder failure
